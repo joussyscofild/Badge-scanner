@@ -45,6 +45,7 @@ export default function BadgeScannerApp() {
     'Grossiste',
     'Revendeur',
     'Importateur',
+    'Bureau d étude',
     'Autre'
   ];
 
