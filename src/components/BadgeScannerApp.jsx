@@ -17,9 +17,22 @@ export default function BadgeScannerApp() {
     company: '',
     clientType: 'Client',
     domain: 'Piscine',
+    customDomain: '',
     region: 'Adrar',
-    interesse: []
+    interesse: [],
+    agent: '',
+    customAgent: ''
   });
+
+  // Liste des agents
+  const agents = [
+    'Yacine Fekhar',
+    'Rostom Moudjahid',
+    'Omar Fekhar',
+    'Lamine Fekhar',
+    'Lamine DJEHLANE',
+    'Oudjana Mohammed'
+  ];
 
   // Liste des wilayas d'Algérie
   const wilayas = [
@@ -76,6 +89,38 @@ export default function BadgeScannerApp() {
       }
       return suggestion;
     });
+  };
+
+  // Add note suggestions component
+  const NoteSuggestions = () => (
+    <div className="grid grid-cols-2 gap-2 mt-4">
+      {noteSuggestions.map((suggestion, index) => (
+        <button
+          key={index}
+          onClick={() => addNoteSuggestion(suggestion)}
+          className={`p-2 text-sm rounded-lg transition-all duration-200 ${getNoteSuggestionColor(index)} hover:opacity-90 hover:transform hover:scale-105 active:scale-95 shadow-sm`}
+        >
+          {suggestion}
+        </button>
+      ))}
+    </div>
+  );
+
+  // Function to get different colors for note suggestions
+  const getNoteSuggestionColor = (index) => {
+    const colors = [
+      'bg-rose-400 text-white',
+      'bg-emerald-400 text-white',
+      'bg-violet-400 text-white',
+      'bg-amber-400 text-white',
+      'bg-sky-400 text-white',
+      'bg-indigo-400 text-white',
+      'bg-teal-400 text-white',
+      'bg-fuchsia-400 text-white',
+      'bg-lime-400 text-white',
+      'bg-cyan-400 text-white'
+    ];
+    return colors[index % colors.length];
   };
 
   // Check for camera availability
@@ -340,7 +385,13 @@ export default function BadgeScannerApp() {
       return;
     }
 
-    setScannedData(manualEntry);
+    // Créer une copie des données avec le domaine personnalisé si nécessaire
+    const submissionData = {
+      ...manualEntry,
+      domain: manualEntry.domain === 'Autre' ? manualEntry.customDomain : manualEntry.domain
+    };
+
+    setScannedData(submissionData);
     setStatus({ type: 'success', message: 'Information collected successfully!' });
   };
 
@@ -355,8 +406,11 @@ export default function BadgeScannerApp() {
       company: '',
       clientType: 'Client',
       domain: 'Piscine',
+      customDomain: '',
       region: 'Adrar',
-      interesse: []
+      interesse: [],
+      agent: '',
+      customAgent: ''
     });
     setStatus({ type: 'info', message: 'Ready to scan' });
   };
@@ -378,16 +432,17 @@ export default function BadgeScannerApp() {
         phone: scannedData.phone || scannedData.phoneNumber || '',
         company: scannedData.company || scannedData.organization || '',
         clientType: scannedData.clientType || manualEntry.clientType,
-        domain: scannedData.domain || manualEntry.domain,
+        domain: scannedData.domain || (manualEntry.domain === 'Autre' && manualEntry.customDomain ? manualEntry.customDomain : manualEntry.domain),
         region: scannedData.region || manualEntry.region,
         interesse: scannedData.interesse || manualEntry.interesse,
         interestLevel,
         notes,
+        agent: manualEntry.agent === 'Autre' ? manualEntry.customAgent : manualEntry.agent,
         rawData: scannedData.rawData || JSON.stringify(scannedData)
       };
 
       // Send data to Google Apps Script web app
-      const response = await fetch('https://script.google.com/macros/s/AKfycbz59WaQRVriPFTw2O3MWw3FzaESdJndOhvT-fuX6mHDXipJ4RhKUUqtlrB26arXmPf0/exec', {
+      const response = await fetch('https://script.google.com/macros/s/AKfycbzCRblkB4pgNmNfEcFruWmg15BLg5S9MhpEF_mPA9-F6n-qvszftHTsEIIv3nqT03pP/exec', {
         method: 'POST',
         headers: {
           'Content-Type': 'text/plain', // Change content type
@@ -575,6 +630,16 @@ export default function BadgeScannerApp() {
                         <option key={domain} value={domain}>{domain}</option>
                       ))}
                     </select>
+                    {manualEntry.domain === 'Autre' && (
+                      <input
+                        type="text"
+                        name="customDomain"
+                        value={manualEntry.customDomain}
+                        onChange={handleManualEntry}
+                        className="mt-2 w-full p-2 border border-gray-300 rounded-md"
+                        placeholder="Specify your domain"
+                      />
+                    )}
                   </div>
 
                   <div className="space-y-2">
@@ -641,7 +706,7 @@ export default function BadgeScannerApp() {
                   <p><span className="font-medium">Téléphone:</span> {scannedData.phone || scannedData.phoneNumber || 'N/A'}</p>
                   <p><span className="font-medium">Société:</span> {scannedData.company || scannedData.organization || 'N/A'}</p>
                   <p><span className="font-medium">Type de Client:</span> {scannedData.clientType || manualEntry.clientType || 'N/A'}</p>
-                  <p><span className="font-medium">Domaine:</span> {scannedData.domain || manualEntry.domain || 'N/A'}</p>
+                  <p><span className="font-medium">Domaine:</span> {scannedData.domain || (manualEntry.domain === 'Autre' ? manualEntry.customDomain : manualEntry.domain) || 'N/A'}</p>
                   <p><span className="font-medium">Région:</span> {scannedData.region || manualEntry.region || 'N/A'}</p>
                   <p><span className="font-medium">Marques d'Intérêt:</span> {(scannedData.interesse || manualEntry.interesse || []).join(', ') || 'N/A'}</p>
                 </div>
@@ -656,9 +721,9 @@ export default function BadgeScannerApp() {
                   onChange={(e) => setInterestLevel(e.target.value)}
                   className="w-full p-2 border border-gray-300 rounded-md"
                 >
-                  <option value="High">High</option>
-                  <option value="Medium">Medium</option>
                   <option value="Low">Low</option>
+                  <option value="Medium">Medium</option>
+                  <option value="High">High</option>
                 </select>
               </div>
 
@@ -666,26 +731,52 @@ export default function BadgeScannerApp() {
                 <label className="block text-sm font-medium text-gray-700">
                   Notes
                 </label>
-                <div className="space-y-2">
-                  <div className="flex flex-wrap gap-2">
-                    {noteSuggestions.map((suggestion, index) => (
-                      <button
-                        key={index}
-                        onClick={() => addNoteSuggestion(suggestion)}
-                        className="px-3 py-1 text-sm bg-blue-100 text-blue-800 rounded-full hover:bg-blue-200 transition-colors"
-                      >
-                        {suggestion}
-                      </button>
-                    ))}
-                  </div>
-                  <textarea
-                    value={notes}
-                    onChange={(e) => setNotes(e.target.value)}
-                    className="w-full p-2 border border-gray-300 rounded-md"
-                    rows="3"
-                    placeholder="Add any notes about the interaction..."
-                  />
+                <textarea
+                  value={notes}
+                  onChange={(e) => setNotes(e.target.value)}
+                  className="w-full p-2 border border-gray-300 rounded-md"
+                  rows="4"
+                  placeholder="Add any additional notes"
+                />
+                <div className="flex flex-wrap gap-2 mt-2">
+                  {noteSuggestions.map((suggestion, index) => (
+                    <button
+                      key={index}
+                      onClick={() => addNoteSuggestion(suggestion)}
+                      className="px-3 py-1 bg-gray-100 hover:bg-gray-200 rounded-full text-sm text-gray-700"
+                    >
+                      {suggestion}
+                    </button>
+                  ))}
                 </div>
+              </div>
+
+              <div className="space-y-2">
+                <label className="block text-sm font-medium text-gray-700">
+                  Agent
+                </label>
+                <select
+                  name="agent"
+                  value={manualEntry.agent}
+                  onChange={handleManualEntry}
+                  className="w-full p-2 border border-gray-300 rounded-md"
+                >
+                  <option value="">Sélectionner un agent</option>
+                  {agents.map((agent, index) => (
+                    <option key={index} value={agent}>{agent}</option>
+                  ))}
+                  <option value="Autre">Autre</option>
+                </select>
+                {manualEntry.agent === 'Autre' && (
+                  <input
+                    type="text"
+                    name="customAgent"
+                    value={manualEntry.customAgent}
+                    onChange={handleManualEntry}
+                    className="mt-2 w-full p-2 border border-gray-300 rounded-md"
+                    placeholder="Entrer le nom de l'agent"
+                  />
+                )}
               </div>
 
               <div className="grid grid-cols-2 gap-4">
@@ -733,3 +824,5 @@ export default function BadgeScannerApp() {
     </div>
   );
 }
+
+// ... existing code ...
